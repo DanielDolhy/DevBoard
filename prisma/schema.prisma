@@ -1,0 +1,66 @@
+// =============================================================================
+// DevBoard — Prisma Schema
+// =============================================================================
+// Datasource URL is configured in prisma.config.ts via DATABASE_URL env var.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// =============================================================================
+// User
+// =============================================================================
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique @db.VarChar(255)
+  passwordHash String   @map("password_hash") @db.VarChar(255)
+  username     String   @unique @db.VarChar(50)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  // Relations
+  posts     Post[]
+  followers Follow[] @relation("following")
+  following Follow[] @relation("follower")
+
+  @@map("users")
+}
+
+// =============================================================================
+// Post
+// =============================================================================
+model Post {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  content   String   @db.VarChar(280)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  author User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // B-Tree index on (user_id, created_at DESC) for timeline lookups
+  @@index([userId, createdAt(sort: Desc)], map: "idx_post_user_timeline")
+  @@map("posts")
+}
+
+// =============================================================================
+// Follow
+// =============================================================================
+model Follow {
+  followerId  String   @map("follower_id") @db.Uuid
+  followingId String   @map("following_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  follower  User @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  // Unique compound index — also serves as the composite primary key
+  @@id([followerId, followingId])
+  @@unique([followerId, followingId], map: "uq_follow_pair")
+  @@map("follows")
+}
