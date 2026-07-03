@@ -1,0 +1,21 @@
+import Redis from "ioredis";
+
+/**
+ * Singleton Redis client instance.
+ *
+ * In development Next.js hot-reloads modules, which would create a new
+ * Redis client on every reload and exhaust connections.
+ * Caching the client on `globalThis` prevents this.
+ */
+
+const globalForRedis = globalThis as unknown as {
+  redis: Redis | undefined;
+};
+
+export const redis = globalForRedis.redis ?? new Redis(process.env.REDIS_URL || "redis://localhost:6379");
+
+if (process.env.NODE_ENV !== "production") {
+  globalForRedis.redis = redis;
+}
+
+export default redis;
