@@ -11,6 +11,19 @@ interface FeedClientProps {
   initialPosts: PostWithAuthor[];
 }
 
+import { ErrorBoundary } from "react-error-boundary";
+
+function FallbackError({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {
+  return (
+    <div className="p-4 border-b border-red-100 bg-red-50 flex items-center justify-between">
+      <p className="text-sm text-red-600">Something went wrong rendering this component.</p>
+      <button onClick={resetErrorBoundary} className="text-sm font-medium text-red-700 hover:underline">
+        Try again
+      </button>
+    </div>
+  );
+}
+
 export function FeedClient({ initialPosts }: FeedClientProps) {
   const router = useRouter();
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
@@ -136,11 +149,15 @@ export function FeedClient({ initialPosts }: FeedClientProps) {
         </div>
       )}
       
-      <TweetBox onSubmit={handlePostSubmit} />
+      <ErrorBoundary FallbackComponent={FallbackError}>
+        <TweetBox onSubmit={handlePostSubmit} />
+      </ErrorBoundary>
       
       <div className="flex flex-col divide-y divide-gray-100 pb-10">
         {optimisticPosts.map((post) => (
-          <PostCard key={post.id} post={post} />
+          <ErrorBoundary key={post.id} FallbackComponent={FallbackError}>
+            <PostCard post={post} />
+          </ErrorBoundary>
         ))}
         
         {/* Infinite Scroll trigger */}
