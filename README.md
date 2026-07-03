@@ -1,36 +1,52 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DevBoard
 
-## Getting Started
+DevBoard is a high-performance Next.js full-stack application demonstrating social graph mechanics, caching layers, and scalable timeline generation.
 
-First, run the development server:
+## Local Installation Guide
+
+Start local environment with Docker Compose (PostgreSQL 16 + Redis 7):
 
 ```bash
+# 1. Clone & install
+npm install
+
+# 2. Configure environment
+cp .env.example .env
+# Edit .env if needed, but defaults work for local dev
+
+# 3. Spin up infrastructure
+docker compose up -d
+
+# 4. Push schema & seed mock data
+npx prisma migrate deploy
+npx tsx scripts/seed.ts
+
+# 5. Start development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Server runs on [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Architectural Decisions
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+**PostgreSQL + Redis** chosen for local scope. Why?
 
-## Learn More
+- **PostgreSQL**: Strong relational integrity. Social graphs require strict constraints (e.g., unique compound indexes on `follower_id` and `following_id` to prevent duplicate follows). Postgres handles B-Tree indexing beautifully for `(user_id, created_at DESC)`, which powers our fallback timeline queries.
+- **Redis**: In-memory speed. Reading timeline from DB requires expensive JOINs or massive `IN (...)` queries. Redis Sorted Sets (ZSET) store pre-computed timeline IDs sorted by timestamp (score). `ZREVRANGE` gives `O(log(N) + M)` pagination lookup — microseconds vs milliseconds.
 
-To learn more about Next.js, take a look at the following resources:
+## Production Scalability Vector
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Local architecture works for thousands of users, but fails at "celebrity scale". If an account with 50M followers posts, pushing to 50M Redis ZSETs synchronously causes immense write amplification and latency.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Transition to Microservices
+In production, synchronous API mutations are decoupled:
+- **API Gateway** accepts POST `/api/posts`, saves to DB, and publishes a `PostCreated` event to **Apache Kafka** or **AWS SQS**.
+- **Worker Nodes** consume the event and distribute the cache updates asynchronously, freeing the main thread instantly.
 
-## Deploy on Vercel
+### Hybrid Fan-Out Model
+To solve the celebrity bottleneck, we implement a Hybrid Fan-Out:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. **Push Model (Standard Users):** For users with < 25k followers, the worker iterates their followers and explicitly pushes the new Post ID into their Redis ZSETs (Fan-Out on Write). Fast read, slight write cost.
+2. **Pull Model (Celebrity Accounts):** For users with > 25k followers, we skip the Push. Instead, when a user loads their timeline, the system checks if they follow any celebrities. It then *pulls* the celebrity's global posts cache and merges it with the user's personal ZSET at runtime (Fan-Out on Read).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This hybrid approach balances write amplification with read latency, keeping the system scalable under massive asynchronous load.
