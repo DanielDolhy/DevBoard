@@ -1,10 +1,27 @@
 import prisma from "@/lib/prisma";
 import { FeedClient } from "@/components/feed/feed-client";
+import { getSession } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 export default async function FeedPage() {
+  const session = await getSession();
+  if (!session) {
+    redirect("/login");
+  }
+
+  const follows = await prisma.follow.findMany({
+    where: { followerId: session.userId },
+    select: { followingId: true },
+  });
+  const followingIds = new Set(follows.map((f) => f.followingId));
+
+  const dbFollowingIds = Array.from(followingIds);
+  dbFollowingIds.push(session.userId);
+
   const posts = await prisma.post.findMany({
+    where: { userId: { in: dbFollowingIds } },
     include: {
       author: {
         select: {
@@ -15,8 +32,13 @@ export default async function FeedPage() {
     orderBy: {
       createdAt: "desc",
     },
-    take: 50,
+    take: 20,
   });
+
+  const mappedPosts = posts.map(post => ({
+    ...post,
+    isFollowing: post.userId === session.userId ? false : followingIds.has(post.userId)
+  }));
 
   return (
     <div className="flex flex-col">
@@ -26,7 +48,7 @@ export default async function FeedPage() {
       </header>
 
       {/* Feed Content via Client Component */}
-      <FeedClient initialPosts={posts} />
+      <FeedClient initialPosts={mappedPosts} />
     </div>
   );
 }

@@ -4,4 +4,5 @@ export interface PostWithAuthor extends Post {
   author: {
     username: string;
   };
+  isFollowing?: boolean;
 }
