@@ -42,3 +42,11 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# agents and loop runner configurations
+.agents/
+.claude/
+.mcp.json
+MEMORY.md
+run.sh
+
