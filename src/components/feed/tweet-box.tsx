@@ -19,6 +19,7 @@ export function TweetBox({ onSubmit }: TweetBoxProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (isOverLimit || content.trim().length === 0 || isSubmitting) return;
 
     setIsSubmitting(true);
@@ -31,20 +32,20 @@ export function TweetBox({ onSubmit }: TweetBoxProps) {
   };
 
   return (
-    <div className="p-4 border-b border-gray-100 flex space-x-3">
-      <div className="w-10 h-10 bg-gray-200 rounded-full flex-shrink-0"></div>
+    <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex space-x-3">
+      <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex-shrink-0"></div>
       <div className="flex-1">
         <form onSubmit={handleSubmit} className="flex flex-col">
           <textarea
-            className="w-full resize-none outline-none text-xl placeholder:text-gray-500 bg-transparent min-h-[80px]"
+            className="w-full resize-none outline-none text-xl placeholder:text-gray-500 dark:placeholder:text-gray-400 bg-transparent min-h-[80px]"
             placeholder="What is happening?!"
             value={content}
             onChange={(e) => setContent(e.target.value)}
           />
-          <div className="flex items-center justify-between pt-3 mt-2 border-t border-gray-100">
+          <div className="flex items-center justify-between pt-3 mt-2 border-t border-gray-100 dark:border-gray-800">
             <div className="text-sm font-medium">
               {content.length > 0 && (
-                <span className={isOverLimit ? "text-red-500" : isNearLimit ? "text-orange-500" : "text-gray-400"}>
+                <span className={isOverLimit ? "text-red-500" : isNearLimit ? "text-orange-500" : "text-gray-400 dark:text-gray-500"}>
                   {charsLeft}
                 </span>
               )}

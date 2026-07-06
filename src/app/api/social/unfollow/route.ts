@@ -8,6 +8,7 @@ const UnfollowSchema = z.object({
 
 export async function POST(request: Request) {
   const session = await requireSession();
+
   if (session instanceof Response) return session;
 
   let body: unknown;
@@ -21,9 +22,10 @@ export async function POST(request: Request) {
   }
 
   const parsed = UnfollowSchema.safeParse(body);
+
   if (!parsed.success) {
     return Response.json(
-      { error: "Validation Error", issues: parsed.error.flatten().fieldErrors },
+      { error: "Validation Error", issues: z.flattenError(parsed.error).fieldErrors },
       { status: 400 }
     );
   }
@@ -56,6 +58,7 @@ export async function POST(request: Request) {
     }
 
     console.error("POST /api/social/unfollow failed:", err);
+
     return Response.json(
       { error: "Internal Server Error", message: "Failed to unfollow user" },
       { status: 500 }

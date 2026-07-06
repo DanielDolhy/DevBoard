@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 
 export default async function FeedPage() {
   const session = await getSession();
+
   if (!session) {
     redirect("/login");
   }
@@ -37,14 +38,14 @@ export default async function FeedPage() {
 
   const mappedPosts = posts.map(post => ({
     ...post,
-    isFollowing: post.userId === session.userId ? false : followingIds.has(post.userId)
+    isFollowing: post.userId === session.userId ? undefined : followingIds.has(post.userId)
   }));
 
   return (
     <div className="flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-gray-100 p-4">
-        <h1 className="text-xl font-bold text-gray-900">Home</h1>
+      <header className="sticky top-0 z-10 bg-white/80 dark:bg-black/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 p-4">
+        <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Home</h1>
       </header>
 
       {/* Feed Content via Client Component */}

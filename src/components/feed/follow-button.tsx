@@ -13,6 +13,7 @@ export function FollowButton({ userId, initialIsFollowing }: FollowButtonProps) 
 
   const toggleFollow = async (e: React.MouseEvent) => {
     e.stopPropagation();
+
     if (isPending) return;
     
     // Optimistic update
@@ -46,11 +47,11 @@ export function FollowButton({ userId, initialIsFollowing }: FollowButtonProps) 
     <button
       onClick={toggleFollow}
       disabled={isPending}
-      className={`px-3 py-1 text-sm font-semibold rounded-full border transition-colors ${
-        isFollowing
-          ? "border-gray-300 text-gray-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200"
-          : "bg-black text-white border-black hover:bg-gray-800"
-      }`}
+      className={`px-3 py-1 text-sm font-semibold rounded-full border transition-colors cursor-pointer ${
+          isFollowing
+            ? "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-950 hover:text-red-600 dark:hover:text-red-400 hover:border-red-200 dark:hover:border-red-900"
+            : "bg-black dark:bg-white text-white dark:text-black border-black dark:border-white hover:bg-gray-800 dark:hover:bg-gray-200"
+        }`}
     >
       {isFollowing ? "Following" : "Follow"}
     </button>

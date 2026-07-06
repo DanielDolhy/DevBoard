@@ -58,36 +58,40 @@ export function verifyToken(token: string): SessionPayload | null {
 }
 
 // ---------------------------------------------------------------------------
-// Request-level session extraction
+// Request-level session extraction (Now supports Cookies & Authorization Header)
 // ---------------------------------------------------------------------------
+
+import { cookies } from "next/headers";
 
 /**
  * Extract the authenticated session from the current request.
  *
- * Reads the `Authorization: Bearer <token>` header. Returns `null` when
- * the token is missing, malformed, or expired — callers should respond
- * with 401 in that case.
- *
- * ```ts
- * // Inside a route handler:
- * const session = await getSession();
- * if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 });
- * ```
+ * Reads the `auth_token` cookie first, falling back to `Authorization: Bearer <token>`.
  */
 export async function getSession(): Promise<Session | null> {
-  const headersList = await headers();
-  const authHeader = headersList.get("authorization");
+  let token: string | undefined;
 
-  if (!authHeader?.startsWith("Bearer ")) {
-    return null;
+  // 1. Try Cookie
+  const cookieStore = await cookies();
+  const cookieToken = cookieStore.get("auth_token")?.value;
+
+  if (cookieToken) {
+    token = cookieToken;
+  } else {
+    // 2. Try Header Fallback
+    const headersList = await headers();
+    const authHeader = headersList.get("authorization");
+
+    if (authHeader?.startsWith("Bearer ")) {
+      token = authHeader.slice(7);
+    }
   }
 
-  const token = authHeader.slice(7);
+  if (!token) return null;
+
   const payload = verifyToken(token);
 
-  if (!payload) {
-    return null;
-  }
+  if (!payload) return null;
 
   return {
     userId: payload.userId,
@@ -95,27 +99,32 @@ export async function getSession(): Promise<Session | null> {
   };
 }
 
+export async function setSessionCookie(token: string) {
+  const cookieStore = await cookies();
+  cookieStore.set("auth_token", token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 7 * 24 * 60 * 60, // 7 days
+  });
+}
+
+export async function clearSessionCookie() {
+  const cookieStore = await cookies();
+  cookieStore.delete("auth_token");
+}
+
 // ---------------------------------------------------------------------------
 // Guard helper
 // ---------------------------------------------------------------------------
 
-/**
- * Require an authenticated session or immediately return a 401 Response.
- *
- * ```ts
- * export async function GET() {
- *   const session = await requireSession();
- *   if (session instanceof Response) return session;
- *   // session is now typed as Session
- * }
- * ```
- */
 export async function requireSession(): Promise<Session | Response> {
   const session = await getSession();
 
   if (!session) {
     return Response.json(
-      { error: "Unauthorized", message: "Valid Bearer token required" },
+      { error: "Unauthorized", message: "Valid auth_token cookie or Bearer token required" },
       { status: 401 }
     );
   }

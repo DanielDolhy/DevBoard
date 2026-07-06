@@ -12,6 +12,7 @@ const CACHE_TTL = 300; // 5 minutes
 
 export async function GET(request: Request) {
   const session = await requireSession();
+
   if (session instanceof Response) return session;
 
   const url = new URL(request.url);
@@ -19,7 +20,7 @@ export async function GET(request: Request) {
   
   if (!parsed.success) {
     return Response.json(
-      { error: "Validation Error", issues: parsed.error.flatten().fieldErrors },
+      { error: "Validation Error", issues: z.flattenError(parsed.error).fieldErrors },
       { status: 400 }
     );
   }
@@ -28,6 +29,7 @@ export async function GET(request: Request) {
   const cacheKey = `user:timeline:${session.userId}`;
   
   let cursorDate: Date | undefined = undefined;
+
   if (cursor) {
     cursorDate = new Date(cursor);
   }
@@ -35,6 +37,7 @@ export async function GET(request: Request) {
   try {
     // 1. Attempt to fetch from Redis ZSET (sorted by timestamp score)
     let cachedPostIds: string[] = [];
+
     if (!cursor) {
       cachedPostIds = await redis.zrevrange(cacheKey, 0, limit - 1);
     } else {
@@ -80,25 +83,14 @@ export async function GET(request: Request) {
     } else {
       // 2. Cache-Miss Fallback: Query DB
       source = "db";
-      
+
       const dbFollowingIds = Array.from(followingIds);
       dbFollowingIds.push(session.userId);
 
       dbPosts = await prisma.post.findMany({
-        where: { userId: { in: dbFollowingIds } },
-        include: {
-          author: { select: { username: true } },
-        },
-        orderBy: { createdAt: "desc" },
-        take: limit,
-        ...(cursorDate ? { cursor: { id: cursorDate.toISOString() } } : {}), // Wait, cursor in Prisma needs unique fields. It's better to use `createdAt < cursorDate`
-      });
-
-      // Refetch with reliable createdAt filtering
-      dbPosts = await prisma.post.findMany({
-        where: { 
+        where: {
           userId: { in: dbFollowingIds },
-          ...(cursorDate ? { createdAt: { lt: cursorDate } } : {})
+          ...(cursorDate ? { createdAt: { lt: cursorDate } } : {}),
         },
         include: {
           author: { select: { username: true } },
@@ -113,6 +105,7 @@ export async function GET(request: Request) {
           try {
             const pipeline = redis.pipeline();
             pipeline.del(cacheKey);
+
             for (const post of dbPosts) {
               pipeline.zadd(cacheKey, post.createdAt.getTime(), post.id);
             }
@@ -128,12 +121,13 @@ export async function GET(request: Request) {
     // Map `isFollowing`
     const mappedPosts = dbPosts.map(post => ({
       ...post,
-      isFollowing: post.userId === session.userId ? false : followingIds.has(post.userId)
+      isFollowing: post.userId === session.userId ? undefined : followingIds.has(post.userId)
     }));
 
     return Response.json({ data: mappedPosts, source }, { status: 200 });
   } catch (err) {
     console.error("GET /api/timeline failed:", err);
+
     return Response.json(
       { error: "Internal Server Error", message: "Failed to fetch timeline" },
       { status: 500 }

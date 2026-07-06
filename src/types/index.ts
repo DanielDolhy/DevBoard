@@ -1,4 +1,4 @@
-import { Post } from "@prisma/client";
+import { Post } from "@/generated/prisma/client";
 
 export interface PostWithAuthor extends Post {
   author: {

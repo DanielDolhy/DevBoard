@@ -1,6 +1,6 @@
 "use client";
 
-import { useOptimistic, useState, useEffect, useRef, useCallback } from "react";
+import { useOptimistic, useState, useEffect, useRef, useCallback, startTransition } from "react";
 import { useRouter } from "next/navigation";
 import { PostWithAuthor } from "@/types";
 import { PostCard } from "./post-card";
@@ -11,13 +11,16 @@ interface FeedClientProps {
   initialPosts: PostWithAuthor[];
 }
 
-import { ErrorBoundary } from "react-error-boundary";
+import { ErrorBoundary, type FallbackProps } from "react-error-boundary";
 
-function FallbackError({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {
+function FallbackError({ error, resetErrorBoundary }: FallbackProps) {
+  const message =
+    error instanceof Error ? error.message : "Something went wrong rendering this component.";
+
   return (
-    <div className="p-4 border-b border-red-100 bg-red-50 flex items-center justify-between">
-      <p className="text-sm text-red-600">Something went wrong rendering this component.</p>
-      <button onClick={resetErrorBoundary} className="text-sm font-medium text-red-700 hover:underline">
+    <div className="p-4 border-b border-red-100 dark:border-red-900 bg-red-50 dark:bg-red-950 flex items-center justify-between">
+      <p className="text-sm text-red-600 dark:text-red-400">{message}</p>
+      <button onClick={resetErrorBoundary} className="text-sm font-medium text-red-700 dark:text-red-300 hover:underline">
         Try again
       </button>
     </div>
@@ -36,10 +39,12 @@ export function FeedClient({ initialPosts }: FeedClientProps) {
 
   // Sync initialPosts if server re-fetches (e.g., after router.refresh)
   const [prevInitial, setPrevInitial] = useState(initialPosts);
+
   if (initialPosts !== prevInitial) {
     setPrevInitial(initialPosts);
     const existingIds = new Set(posts.map(p => p.id));
     const newUnique = initialPosts.filter(p => !existingIds.has(p.id));
+
     if (newUnique.length > 0) {
       setPosts([...newUnique, ...posts]);
     }
@@ -59,6 +64,7 @@ export function FeedClient({ initialPosts }: FeedClientProps) {
       const cursor = new Date(oldestPost.createdAt).toISOString();
       
       const res = await fetch(`/api/timeline?cursor=${encodeURIComponent(cursor)}&limit=20`);
+
       if (!res.ok) throw new Error("Failed to fetch more posts");
       
       const { data } = await res.json() as { data: PostWithAuthor[] };
@@ -71,6 +77,7 @@ export function FeedClient({ initialPosts }: FeedClientProps) {
         // Enforce unique ID checks
         const existingIds = new Set(prev.map(p => p.id));
         const newUniquePosts = data.filter(p => !existingIds.has(p.id));
+
         return [...prev, ...newUniquePosts];
       });
     } catch (err) {
@@ -93,6 +100,7 @@ export function FeedClient({ initialPosts }: FeedClientProps) {
     );
 
     const currentRef = observerRef.current;
+
     if (currentRef) {
       observer.observe(currentRef);
     }
@@ -117,8 +125,10 @@ export function FeedClient({ initialPosts }: FeedClientProps) {
       isFollowing: false,
     };
 
-    // Add it to UI instantly
-    addOptimisticPost(tempPost);
+    // Add it to UI instantly inside a transition
+    startTransition(() => {
+      addOptimisticPost(tempPost);
+    });
 
     try {
       const res = await fetch("/api/posts", {
@@ -144,7 +154,7 @@ export function FeedClient({ initialPosts }: FeedClientProps) {
   return (
     <div className="flex flex-col">
       {errorBanner && (
-        <div className="bg-red-50 border-b border-red-100 p-3 text-sm text-red-600 text-center">
+        <div className="bg-red-50 dark:bg-red-950 border-b border-red-100 dark:border-red-900 p-3 text-sm text-red-600 dark:text-red-400 text-center">
           {errorBanner}
         </div>
       )}
@@ -153,7 +163,7 @@ export function FeedClient({ initialPosts }: FeedClientProps) {
         <TweetBox onSubmit={handlePostSubmit} />
       </ErrorBoundary>
       
-      <div className="flex flex-col divide-y divide-gray-100 pb-10">
+      <div className="flex flex-col divide-y divide-gray-100 dark:divide-gray-800 pb-10">
         {optimisticPosts.map((post) => (
           <ErrorBoundary key={post.id} FallbackComponent={FallbackError}>
             <PostCard post={post} />
