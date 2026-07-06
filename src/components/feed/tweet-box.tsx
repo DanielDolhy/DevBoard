@@ -32,29 +32,42 @@ export function TweetBox({ onSubmit }: TweetBoxProps) {
   };
 
   return (
-    <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex space-x-3">
-      <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex-shrink-0"></div>
+    <div className="glass-card rounded-2xl p-5 my-4 mx-2 sm:mx-4 shadow-sm border border-gray-100 dark:border-gray-800 flex space-x-4">
+      <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-violet-500 to-indigo-500 flex items-center justify-center text-white font-bold text-sm shadow-inner flex-shrink-0">
+        &lt;/&gt;
+      </div>
+
       <div className="flex-1">
         <form onSubmit={handleSubmit} className="flex flex-col">
           <textarea
-            className="w-full resize-none outline-none text-xl placeholder:text-gray-500 dark:placeholder:text-gray-400 bg-transparent min-h-[80px]"
-            placeholder="What is happening?!"
+            className="w-full resize-none outline-none text-lg placeholder:text-gray-400 dark:placeholder:text-gray-500 bg-transparent min-h-[90px] text-gray-900 dark:text-gray-100"
+            placeholder="Share what is on your mind..."
             value={content}
             onChange={(e) => setContent(e.target.value)}
           />
-          <div className="flex items-center justify-between pt-3 mt-2 border-t border-gray-100 dark:border-gray-800">
+
+          <div className="flex items-center justify-between pt-4 mt-2 border-t border-gray-100 dark:border-gray-800">
             <div className="text-sm font-medium">
               {content.length > 0 && (
-                <span className={isOverLimit ? "text-red-500" : isNearLimit ? "text-orange-500" : "text-gray-400 dark:text-gray-500"}>
-                  {charsLeft}
+                <span
+                  className={
+                    isOverLimit
+                      ? "text-red-500 font-bold"
+                      : isNearLimit
+                      ? "text-orange-500 font-semibold"
+                      : "text-gray-400 dark:text-gray-500"
+                  }
+                >
+                  {charsLeft} characters remaining
                 </span>
               )}
             </div>
+
             <Button
               type="submit"
               disabled={content.trim().length === 0 || isOverLimit || isSubmitting}
               isLoading={isSubmitting}
-              className="rounded-full px-5"
+              className="rounded-full px-6"
             >
               Post
             </Button>
