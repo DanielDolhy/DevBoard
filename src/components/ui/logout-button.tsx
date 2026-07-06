@@ -4,7 +4,11 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { LogOut } from "lucide-react";
 
-export function LogoutButton() {
+interface LogoutButtonProps {
+  variant?: "sidebar" | "mobile";
+}
+
+export function LogoutButton({ variant = "sidebar" }: LogoutButtonProps) {
   const router = useRouter();
   const [isPending, setIsPending] = useState(false);
 
@@ -25,6 +29,21 @@ export function LogoutButton() {
       setIsPending(false);
     }
   };
+
+  if (variant === "mobile") {
+    return (
+      <button
+        onClick={handleLogout}
+        disabled={isPending}
+        className="flex flex-col items-center justify-center text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 transition-colors cursor-pointer disabled:opacity-50"
+      >
+        <LogOut className="w-5.5 h-5.5" />
+        <span className="text-[10px] font-semibold mt-1">
+          {isPending ? "..." : "Logout"}
+        </span>
+      </button>
+    );
+  }
 
   return (
     <button

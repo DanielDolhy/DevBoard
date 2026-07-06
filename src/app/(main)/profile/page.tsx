@@ -76,7 +76,7 @@ export default async function ProfilePage() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-3 gap-4 max-w-md mt-6 pt-6 border-t border-gray-100 dark:border-gray-800">
+        <div className="grid grid-cols-3 gap-4 max-w-md mt-6 pt-6 border-t border-gray-100 dark:border-gray-800 mx-auto sm:mx-0 w-full">
           <div className="flex flex-col items-center sm:items-start p-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors">
             <span className="text-xl font-bold text-gray-900 dark:text-gray-100">{user._count.following}</span>
             <span className="text-gray-500 dark:text-gray-400 text-xs font-medium uppercase tracking-wider mt-0.5">Following</span>

@@ -18,15 +18,17 @@ export function PostCard({ post }: { post: PostWithAuthor }) {
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <span className="font-bold text-gray-900 dark:text-gray-100">{post.author.username}</span>
-              <span className="text-gray-500 dark:text-gray-400 text-sm">@{post.author.username}</span>
-              <span className="text-gray-500 dark:text-gray-400 text-sm">· {dateStr}</span>
+          <div className="flex items-start justify-between gap-3 min-w-0">
+            <div className="flex flex-wrap items-baseline gap-x-2 min-w-0">
+              <span className="font-bold text-gray-900 dark:text-gray-100 truncate max-w-[120px] sm:max-w-none">{post.author.username}</span>
+              <span className="text-gray-500 dark:text-gray-400 text-sm truncate max-w-[100px] sm:max-w-none">@{post.author.username}</span>
+              <span className="text-gray-500 dark:text-gray-400 text-sm flex-shrink-0">· {dateStr}</span>
             </div>
 
             {post.isFollowing !== undefined && (
-              <FollowButton userId={post.userId} initialIsFollowing={post.isFollowing} />
+              <div className="flex-shrink-0">
+                <FollowButton userId={post.userId} initialIsFollowing={post.isFollowing} />
+              </div>
             )}
           </div>
 

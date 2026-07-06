@@ -1,7 +1,9 @@
+import { Suspense } from "react";
 import prisma from "@/lib/prisma";
 import { FeedClient } from "@/components/feed/feed-client";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { WhoToFollow } from "@/components/feed/who-to-follow";
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +51,14 @@ export default async function FeedPage() {
       </header>
 
       {/* Feed Content via Client Component */}
-      <FeedClient initialPosts={mappedPosts} />
+      <FeedClient
+        initialPosts={mappedPosts}
+        suggestions={
+          <Suspense fallback={<div className="h-44 bg-gray-100 dark:bg-gray-900 rounded-2xl animate-pulse"></div>}>
+            <WhoToFollow />
+          </Suspense>
+        }
+      />
     </div>
   );
 }

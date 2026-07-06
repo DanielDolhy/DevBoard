@@ -9,6 +9,7 @@ import { Loader2 } from "lucide-react";
 
 interface FeedClientProps {
   initialPosts: PostWithAuthor[];
+  suggestions?: React.ReactNode;
 }
 
 import { ErrorBoundary, type FallbackProps } from "react-error-boundary";
@@ -27,7 +28,7 @@ function FallbackError({ error, resetErrorBoundary }: FallbackProps) {
   );
 }
 
-export function FeedClient({ initialPosts }: FeedClientProps) {
+export function FeedClient({ initialPosts, suggestions }: FeedClientProps) {
   const router = useRouter();
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
 
@@ -162,8 +163,14 @@ export function FeedClient({ initialPosts }: FeedClientProps) {
       <ErrorBoundary FallbackComponent={FallbackError}>
         <TweetBox onSubmit={handlePostSubmit} />
       </ErrorBoundary>
-      
-      <div className="flex flex-col divide-y divide-gray-100 dark:divide-gray-800 pb-10">
+
+      {suggestions && (
+        <div className="lg:hidden px-2 sm:px-4 mb-4">
+          {suggestions}
+        </div>
+      )}
+
+      <div className="flex flex-col pb-10">
         {optimisticPosts.map((post) => (
           <ErrorBoundary key={post.id} FallbackComponent={FallbackError}>
             <PostCard post={post} />
